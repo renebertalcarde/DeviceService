@@ -61,10 +61,6 @@ internal class Program
 
             .Build();
 
-        var mgr = host.Services.GetRequiredService<IDeviceUtil>();
-        var res = await mgr.ConnectAsync(1);
-        await mgr.DisconnectAsync(1);
-
         await host.RunAsync();
     }
 }
