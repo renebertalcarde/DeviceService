@@ -2,7 +2,7 @@
 
 namespace DeviceService.Services;
 
-public interface IDeviceManager
+public interface IDeviceUtil
 {
     event EventHandler<DeviceStatusChangedEventArgs>? StatusChanged;
 
@@ -14,7 +14,7 @@ public interface IDeviceManager
 
     //Task RemoveDeviceAsync(int deviceId);
 
-    Task<bool> ConnectAsync(IDevice device);
+    Task<bool> ConnectAsync(int deviceId);
 
     Task DisconnectAsync(int deviceId);
 

@@ -1,9 +1,9 @@
-﻿using DeviceService.Models;
+﻿using DeviceService.Data;
+using DeviceService.Models;
 using System.Collections.Concurrent;
 
 namespace DeviceService.Services;
-public sealed class DeviceManager :
-    IDeviceManager, IAsyncDisposable
+public sealed class DeviceUtil(Datasource datasource) : IDeviceUtil, IAsyncDisposable
 {
 
     private readonly ConcurrentDictionary<int, IZKEMService>
@@ -11,67 +11,20 @@ public sealed class DeviceManager :
 
     private readonly ConcurrentDictionary<int, SemaphoreSlim>
         _locks = new();
+    private readonly Datasource _datasource = datasource;
 
     public event EventHandler<DeviceStatusChangedEventArgs>?
         StatusChanged;
-
-    //public async Task<List<Device>> GetDevicesAsync()
-    //{
-    //    await using var db = await _dbFactory.CreateDbContextAsync();
-
-    //    return await db.Devices
-    //        .Where(x => 
-    //            !x.ManagedByKiosk && 
-    //            x.IP == "192.168.1.201"
-    //            )
-    //        .AsNoTracking()
-    //        .OrderBy(x => x.DeviceName)
-    //        .ToListAsync();
-    //}
-
-    //public async Task AddDeviceAsync(Device device)
-    //{
-    //    await using var db = await _dbFactory.CreateDbContextAsync();
-
-    //    db.Devices.Add(device);
-
-    //    await db.SaveChangesAsync();
-    //}
-
-    //public async Task UpdateDeviceAsync(Device device)
-    //{
-    //    await using var db = await _dbFactory.CreateDbContextAsync();
-
-    //    db.Devices.Update(device);
-
-    //    await db.SaveChangesAsync();
-    //}
-
-    //public async Task RemoveDeviceAsync(int deviceId)
-    //{
-    //    await DisconnectAsync(deviceId);
-
-    //    await using var db = await _dbFactory.CreateDbContextAsync();
-
-    //    var device = await db.Devices.FindAsync(deviceId);
-
-    //    if (device == null)
-    //        return;
-
-    //    db.Devices.Remove(device);
-
-    //    await db.SaveChangesAsync();
-    //}
 
     public bool IsConnected(int deviceId)
     {
         return _connections.ContainsKey(deviceId);
     }
 
-    public async Task<bool> ConnectAsync(IDevice device)
+    public async Task<bool> ConnectAsync(int deviceId)
     {
         var gate = _locks.GetOrAdd(
-            device.Id, _ => new SemaphoreSlim(1, 1));
+            deviceId, _ => new SemaphoreSlim(1, 1));
 
         await gate.WaitAsync();
 
@@ -79,10 +32,12 @@ public sealed class DeviceManager :
 
         try
         {
-            if (_connections.ContainsKey(device.Id))
+            if (_connections.ContainsKey(deviceId))
                 return true;
 
-            if (device == null || !device.IsEnabled)
+            var device = _datasource.GetDeviceById(deviceId);
+
+            if (device == null)
                 return false;
 
             service = new ZKEMService();
@@ -188,6 +143,63 @@ public sealed class DeviceManager :
         return service;
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await DisconnectAllAsync();
+
+        foreach (var gate in _locks.Values)
+            gate.Dispose();
+
+        _locks.Clear();
+    }
+    //public async Task<List<Device>> GetDevicesAsync()
+    //{
+    //    await using var db = await _dbFactory.CreateDbContextAsync();
+
+    //    return await db.Devices
+    //        .Where(x => 
+    //            !x.ManagedByKiosk && 
+    //            x.IP == "192.168.1.201"
+    //            )
+    //        .AsNoTracking()
+    //        .OrderBy(x => x.DeviceName)
+    //        .ToListAsync();
+    //}
+
+    //public async Task AddDeviceAsync(Device device)
+    //{
+    //    await using var db = await _dbFactory.CreateDbContextAsync();
+
+    //    db.Devices.Add(device);
+
+    //    await db.SaveChangesAsync();
+    //}
+
+    //public async Task UpdateDeviceAsync(Device device)
+    //{
+    //    await using var db = await _dbFactory.CreateDbContextAsync();
+
+    //    db.Devices.Update(device);
+
+    //    await db.SaveChangesAsync();
+    //}
+
+    //public async Task RemoveDeviceAsync(int deviceId)
+    //{
+    //    await DisconnectAsync(deviceId);
+
+    //    await using var db = await _dbFactory.CreateDbContextAsync();
+
+    //    var device = await db.Devices.FindAsync(deviceId);
+
+    //    if (device == null)
+    //        return;
+
+    //    db.Devices.Remove(device);
+
+    //    await db.SaveChangesAsync();
+    //}
+
     //public async Task<DeviceInformation?> GetInformationAsync(
     //    int deviceId)
     //{
@@ -243,13 +255,4 @@ public sealed class DeviceManager :
     //        .FirstAsync(x => x.DeviceId == deviceId);
     //}
 
-    public async ValueTask DisposeAsync()
-    {
-        await DisconnectAllAsync();
-
-        foreach (var gate in _locks.Values)
-            gate.Dispose();
-
-        _locks.Clear();
-    }
 }

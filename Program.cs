@@ -1,22 +1,70 @@
-﻿using DeviceService.Services;
+﻿
+using DeviceService.Data;
+using DeviceService.Hubs;
+using DeviceService.Models;
+using DeviceService.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.WindowsServices;
 
 namespace DeviceService;
 
 internal class Program
 {
-    [STAThread]
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        using IHost host = Host.CreateDefaultBuilder(args)
-            .ConfigureServices((_, services) =>
-            {
-                services.AddSingleton<IDeviceManager, DeviceManager>();
-            })
-            .Build();
-        host.Start();
+        IHost host = Host.CreateDefaultBuilder(args)
 
-        Console.WriteLine("Host started.");
+            // Register as a Windows Service.
+            .UseWindowsService(options =>
+            {
+                options.ServiceName = "DeviceService";
+            })
+
+            // Configure the embedded HTTP server.
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseUrls($"http://{Settings.HostIP}:5000");
+
+                webBuilder.ConfigureServices(services =>
+                {
+                    // Mock data for development only
+                    services.AddSingleton<Datasource>(builder => Settings.MockData_Datasource);
+
+                    // Existing device manager.
+                    services.AddSingleton<
+                        IDeviceUtil,
+                        DeviceUtil>();
+
+                    // SignalR.
+                    services.AddSignalR();
+
+                    // Device status notifications.
+                    services.AddHostedService<
+                        DeviceStatusBroadcaster>();
+                });
+
+                webBuilder.Configure(app =>
+                {
+                    app.UseRouting();
+
+                    app.UseEndpoints(endpoints =>
+                    {
+                        endpoints.MapHub<DeviceHub>(
+                            "/hubs/devices");
+                    });
+                });
+            })
+
+            .Build();
+
+        var mgr = host.Services.GetRequiredService<IDeviceUtil>();
+        var res = await mgr.ConnectAsync(1);
+        await mgr.DisconnectAsync(1);
+
+        await host.RunAsync();
     }
 }
