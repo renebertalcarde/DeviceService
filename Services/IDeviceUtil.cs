@@ -1,4 +1,5 @@
 ﻿using DeviceService.Models;
+using DeviceSharedLib.Models;
 
 namespace DeviceService.Services;
 
@@ -6,7 +7,7 @@ public interface IDeviceUtil
 {
     event EventHandler<DeviceStatusChangedEventArgs>? StatusChanged;
 
-    //Task<List<Device>> GetDevicesAsync();
+    List<DeviceInfo> GetDevices();
 
     //Task AddDeviceAsync(Device device);
 

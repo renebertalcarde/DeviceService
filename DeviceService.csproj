@@ -9,7 +9,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Data\**" />
+    <EmbeddedResource Remove="Data\**" />
+    <None Remove="Data\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\Device.cs" />
     <Compile Remove="Program - Copy.cs" />
+    <Compile Remove="Settings.cs" />
   </ItemGroup>
 	
   <ItemGroup>
@@ -30,6 +38,10 @@
 
   <ItemGroup>
 	<FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeviceSharedLib\DeviceSharedLib.csproj" />
   </ItemGroup>
 
 </Project>

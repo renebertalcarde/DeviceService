@@ -1,14 +1,11 @@
-﻿
-using DeviceService.Data;
-using DeviceService.Hubs;
-using DeviceService.Models;
+﻿using DeviceService.Hubs;
 using DeviceService.Services;
+using DeviceSharedLib;
+using DeviceSharedLib.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Hosting.WindowsServices;
 
 namespace DeviceService;
 
@@ -27,7 +24,7 @@ internal class Program
             // Configure the embedded HTTP server.
             .ConfigureWebHostDefaults(webBuilder =>
             {
-                webBuilder.UseUrls($"http://{Settings.HostIP}:5000");
+                webBuilder.UseUrls(Settings.HostUri.ToString());
 
                 webBuilder.ConfigureServices(services =>
                 {
@@ -53,8 +50,7 @@ internal class Program
 
                     app.UseEndpoints(endpoints =>
                     {
-                        endpoints.MapHub<DeviceHub>(
-                            "/hubs/devices");
+                        endpoints.MapHub<DeviceHub>(Settings.HubPath);
                     });
                 });
             })

@@ -1,5 +1,7 @@
-﻿using DeviceService.Data;
-using DeviceService.Models;
+﻿using DeviceService.Models;
+using DeviceSharedLib;
+using DeviceSharedLib.Data;
+using DeviceSharedLib.Models;
 using System.Collections.Concurrent;
 
 namespace DeviceService.Services;
@@ -152,19 +154,9 @@ public sealed class DeviceUtil(Datasource datasource) : IDeviceUtil, IAsyncDispo
 
         _locks.Clear();
     }
-    //public async Task<List<Device>> GetDevicesAsync()
-    //{
-    //    await using var db = await _dbFactory.CreateDbContextAsync();
 
-    //    return await db.Devices
-    //        .Where(x => 
-    //            !x.ManagedByKiosk && 
-    //            x.IP == "192.168.1.201"
-    //            )
-    //        .AsNoTracking()
-    //        .OrderBy(x => x.DeviceName)
-    //        .ToListAsync();
-    //}
+    public List<DeviceInfo> GetDevices() =>
+        Settings.MockData_Datasource.Devices;
 
     //public async Task AddDeviceAsync(Device device)
     //{
